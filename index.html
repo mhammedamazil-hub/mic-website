@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <title>Web Mic • Live Wireless Microphone Passthrough</title>
+  <meta name="description" content="Low-latency live microphone passthrough application. Route your device microphone to a Bluetooth speaker with zero server communication and complete privacy.">
+  <meta name="keywords" content="web mic, microphone passthrough, bluetooth speaker mic, live microphone, pwa mic, low latency web audio">
+  <meta name="author" content="Web Mic">
+  <meta name="theme-color" content="#080C14">
+  <meta name="color-scheme" content="dark">
+  
+  <!-- Apple iOS PWA tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Web Mic">
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+  
+  <!-- Favicons -->
+  <link rel="icon" type="image/x-icon" href="./icons/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="./icons/icon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="./icons/icon-16.png">
+  <link rel="icon" type="image/svg+xml" href="./icons/icon.svg">
+  <link rel="manifest" href="./manifest.json">
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body class="theme-dark">
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <!-- App Header -->
+  <header class="app-header" role="banner">
+    <div class="header-container">
+      <div class="brand">
+        <div class="brand-icon-wrapper" aria-hidden="true">
+          <svg class="brand-svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="22"/>
+            <line x1="8" y1="22" x2="16" y2="22"/>
+          </svg>
+          <span class="live-dot-mini" id="headerLiveDot" aria-hidden="true"></span>
+        </div>
+        <div class="brand-text">
+          <h1 class="app-title">Web Mic</h1>
+          <span class="app-tagline">Live Audio Passthrough</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- PWA Install Button (hidden until ready) -->
+        <button id="installAppBtn" class="btn btn-sm btn-outline btn-install hidden" aria-label="Install Web Mic App">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          <span>Install App</span>
+        </button>
+
+        <!-- Bluetooth Guide Button -->
+        <button id="btnOpenGuide" class="btn-icon" aria-label="Bluetooth Speaker Guide & Setup Instructions" title="Bluetooth Speaker Setup Guide">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+        </button>
+
+        <!-- Privacy Info Button -->
+        <button id="btnOpenPrivacy" class="btn-icon" aria-label="Privacy & Security Guarantee" title="Privacy Guarantee">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <polyline points="9 12 11 14 15 10"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Offline Status Banner -->
+  <div id="offlineBanner" class="banner banner-offline hidden" role="status" aria-live="polite">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+      <line x1="1" y1="1" x2="23" y2="23"/>
+      <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/>
+      <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/>
+      <path d="M10.71 5.05A16 16 0 0 1 22.58 9"/>
+      <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/>
+      <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+      <line x1="12" y1="20" x2="12.01" y2="20"/>
+    </svg>
+    <span>Offline mode active — Web Mic runs entirely locally on your device.</span>
+  </div>
+
+  <!-- Main Content Container -->
+  <main id="main-content" class="main-content" role="main">
+    <div class="content-wrapper">
+
+      <!-- Acoustic Feedback Warning Banner -->
+      <section class="feedback-warning-banner" role="region" aria-label="Acoustic Feedback Safety Warning">
+        <div class="warning-icon-col" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+        </div>
+        <div class="warning-text-col">
+          <strong>Keep the microphone away from the speaker to prevent audio feedback.</strong>
+          <p>Position your device's mic pointing away from the connected speaker and start at moderate volume.</p>
+        </div>
+        <button class="btn-link-subtle" id="btnFeedbackTips" aria-label="View feedback prevention tips">Tips</button>
+      </section>
+
+      <!-- Primary Microphone Live Console Card -->
+      <div class="console-card">
+
+        <!-- Live Audio Aura & Big Button -->
+        <div class="mic-button-stage">
+          <div class="pulse-aura" id="pulseAura" aria-hidden="true"></div>
+          <div class="pulse-ring pulse-ring-1" id="pulseRing1" aria-hidden="true"></div>
+          <div class="pulse-ring pulse-ring-2" id="pulseRing2" aria-hidden="true"></div>
+
+          <button id="toggleMicBtn" class="mic-main-btn" aria-label="Start Microphone" aria-pressed="false">
+            <div class="mic-btn-content">
+              <div class="mic-icon-circle" aria-hidden="true">
+                <svg class="mic-icon-svg" id="micIconSvg" viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                  <line x1="12" y1="19" x2="12" y2="22"/>
+                  <line x1="8" y1="22" x2="16" y2="22"/>
+                </svg>
+              </div>
+              <span class="mic-btn-label" id="micBtnLabel">START MICROPHONE</span>
+              <span class="mic-btn-sublabel" id="micBtnSublabel">Tap to route audio to speaker</span>
+            </div>
+          </button>
+        </div>
+
+        <!-- Real-Time Visualizer Section -->
+        <div class="visualizer-section">
+          <div class="vis-header">
+            <div class="vis-title">
+              <span class="live-dot" id="liveDotIndicator" aria-hidden="true"></span>
+              <span class="vis-label" id="meterLabel">Input Level Meter</span>
+              <span id="clipIndicator" class="clip-badge hidden" title="Signal is clipping (too loud)">CLIP</span>
+            </div>
+            
+            <div class="vis-view-selector" role="group" aria-label="Visualizer View Mode">
+              <button class="btn-vis-mode active" id="btnVisBars" data-mode="bars" aria-label="LED VU Meter">VU Meter</button>
+              <button class="btn-vis-mode" id="btnVisWave" data-mode="wave" aria-label="Waveform Visualizer">Waveform</button>
+              <button class="btn-vis-mode" id="btnVisBoth" data-mode="both" aria-label="Both VU and Waveform">Both</button>
+            </div>
+          </div>
+
+          <!-- VU Meter Display -->
+          <div class="vu-meter-container" id="vuMeterContainer">
+            <div class="vu-scale" aria-hidden="true">
+              <span>-60</span>
+              <span>-36</span>
+              <span>-24</span>
+              <span>-12</span>
+              <span>-6</span>
+              <span>0 dB</span>
+              <span class="scale-clip">+6</span>
+            </div>
+            <div class="vu-meter-bar-track" role="meter" aria-label="Microphone Audio Level" aria-valuemin="-60" aria-valuemax="6" aria-valuenow="-60" id="vuMeterAria">
+              <div class="vu-meter-fill" id="vuMeterFill"></div>
+              <div class="vu-peak-needle" id="vuPeakNeedle"></div>
+            </div>
+            <div class="vu-metrics">
+              <span class="metric-text" id="dbLevelText">-∞ dB</span>
+              <span class="metric-text" id="peakLevelText">Peak: -∞ dB</span>
+            </div>
+          </div>
+
+          <!-- Oscilloscope Canvas Display -->
+          <div class="oscilloscope-container hidden" id="oscilloscopeContainer">
+            <canvas id="oscilloscopeCanvas" class="oscilloscope-canvas" width="600" height="90" aria-hidden="true"></canvas>
+          </div>
+        </div>
+
+        <!-- Quick Controls Row -->
+        <div class="quick-controls-grid">
+          
+          <!-- Mute / Unmute Button -->
+          <button id="toggleMuteBtn" class="btn btn-control" aria-label="Mute Microphone" aria-pressed="false" disabled>
+            <svg id="muteIcon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
+            </svg>
+            <span id="muteBtnText">Mute</span>
+          </button>
+
+          <!-- Test Speaker Chime Button -->
+          <button id="testSpeakerBtn" class="btn btn-control" aria-label="Play Test Chime Through Speaker" title="Test audio output with a gentle tone">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+            </svg>
+            <span>Test Sound</span>
+          </button>
+
+          <!-- Wake Lock Screen Toggle -->
+          <button id="toggleWakeLockBtn" class="btn btn-control" aria-label="Keep Screen Awake" aria-pressed="false" title="Keep screen awake to prevent audio interruption">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="5"/>
+              <line x1="12" y1="1" x2="12" y2="3"/>
+              <line x1="12" y1="21" x2="12" y2="23"/>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+              <line x1="1" y1="12" x2="3" y2="12"/>
+              <line x1="21" y1="12" x2="23" y2="12"/>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </svg>
+            <span id="wakeLockBtnText">Stay Awake</span>
+          </button>
+        </div>
+
+        <!-- Volume & Gain Control Section -->
+        <div class="control-group volume-group">
+          <div class="control-group-header">
+            <label for="gainSlider" class="control-label">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+              </svg>
+              <span>Microphone Volume & Gain</span>
+            </label>
+            <div class="gain-badge-container">
+              <span id="gainValueDisplay" class="badge badge-gain">100% (0.0 dB)</span>
+              <button id="btnResetGain" class="btn-link-subtle" title="Reset volume to 100% (0dB)">Reset</button>
+            </div>
+          </div>
+
+          <div class="slider-row">
+            <button id="btnVolumeDown" class="btn-step" aria-label="Decrease volume by 5%">-</button>
+            <div class="range-wrapper">
+              <input type="range" id="gainSlider" min="0" max="2" step="0.02" value="1.0" aria-label="Microphone volume slider" aria-valuemin="0" aria-valuemax="200" aria-valuenow="100">
+              <div class="slider-ticks" aria-hidden="true">
+                <span style="left: 0%;">0%</span>
+                <span style="left: 25%;">50%</span>
+                <span style="left: 50%;" class="tick-center">100% (0dB)</span>
+                <span style="left: 75%;">150%</span>
+                <span style="left: 100%;">200% (+6dB)</span>
+              </div>
+            </div>
+            <button id="btnVolumeUp" class="btn-step" aria-label="Increase volume by 5%">+</button>
+          </div>
+        </div>
+
+        <!-- Latency Mode Selector -->
+        <div class="control-group">
+          <div class="control-group-header">
+            <label class="control-label" id="latencyModeGroupLabel">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+              </svg>
+              <span>Latency Mode</span>
+            </label>
+            <span class="badge badge-info" id="currentLatencyBadge">Ultra Low Latency</span>
+          </div>
+
+          <div class="segmented-control" role="radiogroup" aria-labelledby="latencyModeGroupLabel">
+            <button type="button" class="segment-btn active" id="btnModeLowLatency" role="radio" aria-checked="true" data-mode="low-latency">
+              <div class="segment-btn-title">⚡ Low Latency</div>
+              <div class="segment-btn-desc">Fastest response • No extra processing</div>
+            </button>
+            <button type="button" class="segment-btn" id="btnModeVoiceClarity" role="radio" aria-checked="false" data-mode="voice-clarity">
+              <div class="segment-btn-title">✨ Voice Clarity</div>
+              <div class="segment-btn-desc">Noise reduction & voice filter</div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Status Dashboard Grid -->
+        <div class="status-grid" role="region" aria-label="Audio Status Indicators">
+          
+          <div class="status-card">
+            <div class="status-card-header">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+              </svg>
+              <span class="status-card-title">Microphone</span>
+            </div>
+            <div class="status-card-value" id="statusMicText">Ready (Standby)</div>
+            <div class="status-card-sub" id="statusMicDetail">No active capture</div>
+          </div>
+
+          <div class="status-card">
+            <div class="status-card-header">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+              </svg>
+              <span class="status-card-title">Audio Output</span>
+            </div>
+            <div class="status-card-value" id="statusOutputText">System Output</div>
+            <div class="status-card-sub" id="statusOutputDetail">Bluetooth / Default Speaker</div>
+          </div>
+
+          <div class="status-card">
+            <div class="status-card-header">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="2" y1="12" x2="22" y2="12"/>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+              </svg>
+              <span class="status-card-title">Engine Latency</span>
+            </div>
+            <div class="status-card-value" id="statusLatencyText">Interactive (~10ms)</div>
+            <div class="status-card-sub" id="statusSampleRateText">48 kHz • Interactive Buffer</div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Device Configuration Panel -->
+      <section class="config-section" aria-label="Audio Devices & Processing Settings">
+        <h2 class="section-heading">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+          <span>Audio Device & Routing</span>
+        </h2>
+
+        <div class="device-selectors-grid">
+          
+          <!-- Microphone Input Selector -->
+          <div class="device-select-card">
+            <div class="device-card-header">
+              <label for="micSelect" class="device-select-label">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                </svg>
+                <span>Input Microphone</span>
+              </label>
+              <button id="btnRefreshDevices" class="btn-refresh" title="Refresh Audio Devices" aria-label="Refresh Audio Devices">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                </svg>
+              </button>
+            </div>
+            <select id="micSelect" class="select-dropdown" aria-label="Select Input Microphone">
+              <option value="default">Default Device Microphone</option>
+            </select>
+            <p class="select-hint" id="micSelectHint">Grant mic permission to view all connected microphones.</p>
+          </div>
+
+          <!-- Audio Output Selector -->
+          <div class="device-select-card">
+            <div class="device-card-header">
+              <label for="outputSelect" class="device-select-label">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+                </svg>
+                <span>Speaker Output</span>
+              </label>
+              <span id="outputSupportBadge" class="badge badge-supported">Supported</span>
+            </div>
+            <select id="outputSelect" class="select-dropdown" aria-label="Select Audio Output Device">
+              <option value="default">Default System Audio Output</option>
+            </select>
+            <p class="select-hint" id="outputSelectHint">Select your Bluetooth speaker or leave as system default.</p>
+            <div id="outputUnsupportedNotice" class="unsupported-notice hidden">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              <span>Your browser does not support web audio output switching. Please set your Bluetooth speaker as the device's default audio output in your system settings.</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Optional Audio Processing Accordion -->
+        <details class="settings-accordion" id="advancedProcessingDetails">
+          <summary class="accordion-summary">
+            <div class="summary-left">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <line x1="4" y1="21" x2="4" y2="14"/>
+                <line x1="4" y1="10" x2="4" y2="3"/>
+                <line x1="12" y1="21" x2="12" y2="12"/>
+                <line x1="12" y1="8" x2="12" y2="3"/>
+                <line x1="20" y1="21" x2="20" y2="16"/>
+                <line x1="20" y1="12" x2="20" y2="3"/>
+                <line x1="1" y1="14" x2="7" y2="14"/>
+                <line x1="9" y1="8" x2="15" y2="8"/>
+                <line x1="17" y1="16" x2="23" y2="16"/>
+              </svg>
+              <span>Fine-Tune Audio Processing (Advanced)</span>
+            </div>
+            <span class="summary-toggle-icon" aria-hidden="true">▼</span>
+          </summary>
+
+          <div class="accordion-body">
+            <p class="processing-notice">
+              <em>Note:</em> Enabling additional filters or noise suppression can introduce slight audio latency. For the lowest delay, keep processing disabled.
+            </p>
+
+            <div class="processing-toggles-grid">
+              
+              <label class="toggle-control">
+                <div class="toggle-text">
+                  <span class="toggle-name">Echo Cancellation (AEC)</span>
+                  <span class="toggle-desc">Reduces feedback loop at the cost of processing delay.</span>
+                </div>
+                <input type="checkbox" id="chkEchoCancellation" class="switch-checkbox">
+                <span class="switch-slider" aria-hidden="true"></span>
+              </label>
+
+              <label class="toggle-control">
+                <div class="toggle-text">
+                  <span class="toggle-name">Noise Suppression (NS)</span>
+                  <span class="toggle-desc">Filters background hiss, fans, and ambient noise.</span>
+                </div>
+                <input type="checkbox" id="chkNoiseSuppression" class="switch-checkbox">
+                <span class="switch-slider" aria-hidden="true"></span>
+              </label>
+
+              <label class="toggle-control">
+                <div class="toggle-text">
+                  <span class="toggle-name">Auto Gain Control (AGC)</span>
+                  <span class="toggle-desc">Automatically adjusts volume level for quiet or loud voices.</span>
+                </div>
+                <input type="checkbox" id="chkAutoGain" class="switch-checkbox">
+                <span class="switch-slider" aria-hidden="true"></span>
+              </label>
+
+              <label class="toggle-control">
+                <div class="toggle-text">
+                  <span class="toggle-name">80 Hz Rumble Filter (Low-Cut)</span>
+                  <span class="toggle-desc">High-pass EQ filter to remove low microphone handling thumps.</span>
+                </div>
+                <input type="checkbox" id="chkHighPass" class="switch-checkbox" checked>
+                <span class="switch-slider" aria-hidden="true"></span>
+              </label>
+
+            </div>
+
+            <div class="diagnostics-panel">
+              <h3 class="diagnostics-title">Audio Pipeline Diagnostics</h3>
+              <div class="diagnostics-grid">
+                <div><span>AudioContext:</span> <strong id="diagCtxState">uninitialized</strong></div>
+                <div><span>Sample Rate:</span> <strong id="diagSampleRate">--</strong></div>
+                <div><span>Base Latency:</span> <strong id="diagBaseLatency">--</strong></div>
+                <div><span>Output Latency:</span> <strong id="diagOutputLatency">--</strong></div>
+                <div><span>Channels:</span> <strong>1 (Mono Passthrough)</strong></div>
+                <div><span>Routing Engine:</span> <strong id="diagEngine">Direct Web Audio Graph</strong></div>
+              </div>
+            </div>
+          </div>
+        </details>
+      </section>
+
+      <!-- Privacy Guarantee Card -->
+      <section class="privacy-card" role="region" aria-label="Privacy & Security Guarantee">
+        <div class="privacy-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <polyline points="9 12 11 14 15 10"/>
+          </svg>
+        </div>
+        <div class="privacy-content">
+          <h2 class="privacy-title">100% Client-Side Privacy Guarantee</h2>
+          <p class="privacy-statement">
+            <strong>"Your microphone audio is processed locally on your device and is not uploaded or recorded by this app."</strong>
+          </p>
+          <p class="privacy-sub">
+            Web Mic functions entirely inside your browser's Web Audio pipeline. There is zero server communication, zero audio recording, zero cloud processing, and zero user tracking.
+          </p>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- App Footer -->
+  <footer class="app-footer" role="contentinfo">
+    <div class="footer-container">
+      <div class="footer-left">
+        <span>Web Mic • Zero-latency wireless mic PWA</span>
+      </div>
+      <div class="footer-right">
+        <button id="btnFooterGuide" class="btn-footer-link">Bluetooth Guide</button>
+        <span class="dot-sep">•</span>
+        <button id="btnFooterPrivacy" class="btn-footer-link">Privacy Policy</button>
+        <span class="dot-sep">•</span>
+        <a href="https://github.com/mhammedamazil-hub/mic-website" target="_blank" rel="noopener noreferrer" class="btn-footer-link">GitHub</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- MODAL: Bluetooth Speaker Guide -->
+  <div id="guideModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="guideModalTitle">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-header-brand">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#06B6D4" stroke-width="2" aria-hidden="true">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+          </svg>
+          <h2 id="guideModalTitle" class="modal-title">Bluetooth Speaker Setup Guide</h2>
+        </div>
+        <button class="btn-close-modal" id="btnCloseGuideModal" aria-label="Close dialog">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="step-card">
+          <div class="step-number">1</div>
+          <div class="step-text">
+            <strong>Connect Bluetooth Speaker</strong>
+            <p>Go to your phone or computer's system settings and pair/connect your Bluetooth speaker as you normally do.</p>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-number">2</div>
+          <div class="step-text">
+            <strong>Grant Microphone Permission</strong>
+            <p>Press <strong>Start Microphone</strong> in Web Mic and click "Allow" when your browser asks for microphone access.</p>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-number">3</div>
+          <div class="step-text">
+            <strong>Select Audio Output</strong>
+            <p>If supported by your browser, select your Bluetooth speaker from the dropdown. Otherwise, ensure the speaker is set as your operating system's default audio output.</p>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-number">4</div>
+          <div class="step-text">
+            <strong>Prevent Feedback & Speak</strong>
+            <p>Keep your phone/microphone pointed away from the speaker, start at a reasonable volume, and speak clearly.</p>
+          </div>
+        </div>
+
+        <div class="info-callout">
+          <strong>Understanding Bluetooth Latency:</strong>
+          <p>Web Mic processes audio in <em>under 10 milliseconds</em> in the browser. However, Bluetooth hardware wireless codecs (such as SBC, AAC, or A2DP) add an inherent 100–200ms wireless transmission delay. For the lowest physical latency, use a Low Latency Bluetooth codec (aptX LL) or an auxiliary (AUX) audio cable.</p>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="btnCloseGuideModalBtn">Got it, Let's Go</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Acoustic Feedback Tips -->
+  <div id="feedbackModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="feedbackModalTitle">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-header-brand">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#F59E0B" stroke-width="2" aria-hidden="true">
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          <h2 id="feedbackModalTitle" class="modal-title">Feedback Prevention Tips</h2>
+        </div>
+        <button class="btn-close-modal" id="btnCloseFeedbackModal" aria-label="Close dialog">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <p>Acoustic feedback (the high-pitched screech or echo) happens when microphone audio played through a speaker loops back into the microphone.</p>
+
+        <ul class="modal-tips-list">
+          <li><strong>Distance:</strong> Keep at least 6 to 10 feet between your microphone and the speaker.</li>
+          <li><strong>Orientation:</strong> Stand behind the speaker or point your phone away from the speaker's front grill.</li>
+          <li><strong>Volume Levels:</strong> Start with microphone gain at 80–100% and increase gradually. Avoid maxing out both phone volume and speaker volume at once.</li>
+          <li><strong>Echo Cancellation:</strong> If you must stay close to the speaker, enable <em>Echo Cancellation</em> in the Advanced Audio Processing settings.</li>
+        </ul>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="btnCloseFeedbackModalBtn">Understood</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Privacy Policy & Architecture -->
+  <div id="privacyModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="privacyModalTitle">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-header-brand">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#10B981" stroke-width="2" aria-hidden="true">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <polyline points="9 12 11 14 15 10"/>
+          </svg>
+          <h2 id="privacyModalTitle" class="modal-title">Privacy & Local Processing Guarantee</h2>
+        </div>
+        <button class="btn-close-modal" id="btnClosePrivacyModal" aria-label="Close dialog">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="privacy-highlight-box">
+          <strong>"Your microphone audio is processed locally on your device and is not uploaded or recorded by this app."</strong>
+        </div>
+
+        <h3 class="modal-subtitle">Our Privacy Principles:</h3>
+        <ul class="modal-tips-list">
+          <li><strong>Zero Audio Uploads:</strong> Audio data never leaves your browser window. No network requests are made during microphone capture.</li>
+          <li><strong>Zero Recording or Storage:</strong> No microphone stream is written to IndexedDB, LocalStorage, or disk.</li>
+          <li><strong>No Backend Server:</strong> Web Mic is 100% static client-side JavaScript. There is no application server or database.</li>
+          <li><strong>No Accounts or Tracking:</strong> No sign-in, cookies, tracking pixels, or third-party analytics scripts.</li>
+        </ul>
+
+        <h3 class="modal-subtitle">Open Source & Verifiable:</h3>
+        <p>The entire source code is static HTML, CSS, and vanilla JavaScript. You can inspect the network tab in your browser's Developer Tools to verify zero outbound network calls.</p>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="btnClosePrivacyModalBtn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Permission Pre-Prompt / Explanation -->
+  <div id="permissionModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="permissionModalTitle">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-header-brand">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#06B6D4" stroke-width="2" aria-hidden="true">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+          </svg>
+          <h2 id="permissionModalTitle" class="modal-title">Microphone Access Required</h2>
+        </div>
+        <button class="btn-close-modal" id="btnClosePermissionModal" aria-label="Close dialog">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <p class="lead-paragraph">
+          Web Mic needs microphone access so your voice can be played through the selected speaker.
+        </p>
+        <div class="info-callout">
+          <strong>Privacy Note:</strong> Your audio is processed 100% locally on your device. It is <strong>never</strong> recorded, saved, or uploaded to any server.
+        </div>
+        <p>When your browser asks for permission on the next screen, please click <strong>"Allow"</strong> or <strong>"Grant Permission"</strong>.</p>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelPermissionModal">Cancel</button>
+        <button class="btn btn-primary" id="btnGrantPermissionModal">Continue & Allow</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container" aria-live="assertive" aria-atomic="true"></div>
+
+  <!-- JavaScript Application Entry -->
+  <script src="./app.js"></script>
+</body>
+</html>
